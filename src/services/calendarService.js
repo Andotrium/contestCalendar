@@ -1,8 +1,21 @@
 const { google } = require("googleapis");
+const fs = require("fs");
 const creds = require("../config/credentials.json");
-const token = require("../config/token.json");
+const path = require("path");
+// const token = require("../config/token.json");
 const dotenv = require("dotenv");
 dotenv.config();
+
+function getCalendarClient() {
+  const tokenPath = path.join(__dirname, "../config/token.json");
+
+  if (!fs.existsSync(tokenPath)) {
+    throw new Error(
+      "token.json not found. Please complete OAuth flow first."
+    );
+  }
+
+  const token = JSON.parse(fs.readFileSync(tokenPath, "utf8"));
 
 // Create OAuth2 client
 const auth = new google.auth.OAuth2(
@@ -20,11 +33,15 @@ const calendar = google.calendar({
   auth,
 });
 
+  return calendar;
+}
+
 /**
  * Create a Google Calendar event
  * @param {Object} event - Google Calendar event object
  */
 async function createCalendarEvent(event) {
+  const calendar = getCalendarClient();
   return calendar.events.insert({
     calendarId: "primary",
     requestBody: event,
