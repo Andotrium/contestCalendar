@@ -1,16 +1,17 @@
 const dotenv = require('dotenv');
+const path = require("path");
+dotenv.config({ path: path.join(__dirname, '..', '.env') });
+
 const express = require("express");
+const { google } = require("googleapis");
+const fs = require("fs");
+const creds = require("./config/credentials.json");
 const cfRoute = require('./routes/codeforcesRoute');
 const buildCalendarEvent = require('./routes/addOnecfRound');
 const addAllCFRoute = require('./routes/addAllCFRoute');
 const addAllACRoute = require('./routes/addAllACRoute');
-dotenv.config();
-const app = express();
 
-const { google } = require("googleapis");
-const fs = require("fs");
-const path = require("path");
-const creds = require("./config/credentials.json");
+const app = express();
 
 const oauth2Client = new google.auth.OAuth2(
   creds.web.client_id,
@@ -20,9 +21,20 @@ const oauth2Client = new google.auth.OAuth2(
 
 app.get("/oauth2callback", async (req, res) => {
   const code = req.query.code;
+  const state = req.query.state;
 
   if (!code) {
     return res.send("No code found");
+  }
+
+  // Verify state parameter to prevent CSRF
+  const statePath = path.join(__dirname, "config/oauth_state.json");
+  if (fs.existsSync(statePath)) {
+    const savedState = JSON.parse(fs.readFileSync(statePath, "utf8")).state;
+    if (state !== savedState) {
+      return res.status(403).send("Invalid state parameter");
+    }
+    fs.unlinkSync(statePath);
   }
 
   try {

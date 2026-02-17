@@ -27,6 +27,12 @@ const auth = new google.auth.OAuth2(
 // Attach stored tokens (includes refresh_token)
 auth.setCredentials(token);
 
+// Save updated tokens whenever they are refreshed
+auth.on("tokens", (newTokens) => {
+  const updated = { ...token, ...newTokens };
+  fs.writeFileSync(tokenPath, JSON.stringify(updated, null, 2));
+});
+
 // Create Calendar client
 const calendar = google.calendar({
   version: "v3",
